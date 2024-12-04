@@ -1,5 +1,9 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+    <div class="w-full sm:max-w-md mt-6 px-6 py-8 bg-gray-400 overflow-hidden sm:rounded-lg">
+        <div class="flex justify-center mb-12">
+            <img src="{{ asset('images/smk.png') }}" alt="Logo" class="h-20 w-auto">
+        </div>
+    <div class="mb-4 text-sm text-gray-600 dark:text-black">
         {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
     </div>
 

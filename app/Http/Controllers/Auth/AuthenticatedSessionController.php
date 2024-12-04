@@ -8,6 +8,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -23,13 +26,41 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();
+{
+    // Pastikan tidak melebihi batas percobaan login
+    $this->ensureIsNotRateLimited($request);
 
-        $request->session()->regenerate();
+    $request->authenticate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+    $request->session()->regenerate();
+
+    // Hapus hit rate limiting setelah login berhasil
+    RateLimiter::clear($this->throttleKey($request));
+
+    return redirect()->intended(route('dashboard', absolute: false));
+}
+
+protected function ensureIsNotRateLimited(Request $request): void
+{
+    if (!RateLimiter::tooManyAttempts($this->throttleKey($request), 3)) {
+        RateLimiter::hit($this->throttleKey($request), 30); // Pemblokiran selama 60 detik
+        return;
+    
     }
+
+    $seconds = RateLimiter::availableIn($this->throttleKey($request));
+
+    throw ValidationException::withMessages([
+        'email' => trans('Akun dibekukan. Coba lagi dalam :seconds detik.', [
+            'seconds' => $seconds,
+        ]),
+    ]);
+}
+
+protected function throttleKey(Request $request): string
+{
+    return Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+}
 
     /**
      * Destroy an authenticated session.
